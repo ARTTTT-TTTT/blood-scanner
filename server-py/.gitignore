@@ -1,0 +1,92 @@
+# Python
+*.py[cod]
+__pycache__/
+*.so
+*.pyd
+*.pyo
+*.db
+*.sqlite3
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.egg
+*.egg-info
+*.dist-info
+
+# Virtual environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# FastAPI
+*.log
+*.pid
+*.seed
+*.cover
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# MySQL
+*.sql
+
+# VS Code
+.vscode/
+.history/
+
+# macOS
+.DS_Store
+
+# pyenv
+.python-version
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*.bak
+
+# MongoDB
+data/
+
+# dotenv
+*.env
+
+# Node modules (if you have a frontend project)
+node_modules/
+npm-debug.log
+yarn-error.log
+lerna-debug.log
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IntelliJ
+*.iml
+.idea/
+*.iws
+
+# Pycharm
+.idea/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.DS_Store
+*.project
+*.pydevproject
+.pydevproject

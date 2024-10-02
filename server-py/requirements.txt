@@ -1,0 +1,31 @@
+# Web Framework & API Libraries
+fastapi
+uvicorn
+
+# Security & Authentication
+authlib
+itsdangerous
+python-jose
+passlib
+bcrypt==3.2.0
+
+# Test
+pytest 
+pytest-asyncio 
+httpx
+
+# Data Validation & Serialization
+pydantic
+
+# File Handling
+python-multipart
+
+# Background Processing & Progress Bars
+tqdm
+
+# Machine Learning
+scikit-learn==1.2.2
+
+# Database Interaction
+motor
+pymongo[srv]
