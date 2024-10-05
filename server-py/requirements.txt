@@ -18,7 +18,9 @@ python-dotenv
 
 # Data Validation & Serialization
 pydantic
-
+lightgbm==4.5.0
+numpy==1.26.4
+opencv-python==4.10.0.84
 
 # File Handling
 python-multipart
@@ -32,7 +34,3 @@ tqdm
 # Database Interaction
 motor
 pymongo[srv]
-
-lightgbm==4.5.0
-numpy==1.26.4
-opencv-python==4.10.0.84

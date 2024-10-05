@@ -1,3 +1,6 @@
+#Model
+lightgbm_model.txt
+
 # Python
 *.py[cod]
 __pycache__/
