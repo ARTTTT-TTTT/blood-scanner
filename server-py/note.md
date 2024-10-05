@@ -1,7 +1,7 @@
 ### Create virtual environment
 ```
 python -m venv env
-python3 -m venv env
+python3.10 -m venv env
 ```
 
 #### Install Dependencies

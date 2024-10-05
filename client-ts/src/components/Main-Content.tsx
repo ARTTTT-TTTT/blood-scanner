@@ -1,25 +1,26 @@
 import { Card, CardHeader, CardBody } from "@material-tailwind/react";
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
 
 interface MainContentProps {
     isSidebarOpen: boolean;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
-    const [isCameraOn, setIsCameraOn] = useState(false); // State สำหรับจัดการสถานะกล้อง
-    const [capturedImage, setCapturedImage] = useState<string | null>(null); // สำหรับจัดการภาพที่ถ่าย
+export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
+    const [responseMessage, setResponseMessage] = useState(false); 
+    const [isCameraOn, setIsCameraOn] = useState(false);
+    const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
-    const canvasRef = useRef<HTMLCanvasElement | null>(null); // สำหรับ canvas
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-    // ฟังก์ชันเปิดกล้อง
     const startCamera = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
-                videoRef.current.play();
+                await videoRef.current.play();
                 console.log("Camera started successfully.");
+            } else {
+                console.error("videoRef.current is not available.");
             }
             setIsCameraOn(true);
         } catch (error) {
@@ -27,59 +28,72 @@ const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
         }
     };
 
-    // ฟังก์ชันปิดกล้อง
     const stopCamera = () => {
         if (videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
             const tracks = stream.getTracks();
+
+            // Stop all media tracks (video/audio)
             tracks.forEach((track) => track.stop());
+
+            // Release the video stream object
             videoRef.current.srcObject = null;
+
+            console.log("Camera stopped and resources released.");
         }
         setIsCameraOn(false);
-        console.log("Camera stopped.");
     };
 
-    // ฟังก์ชันถ่ายภาพ
     const captureImage = () => {
         if (videoRef.current && canvasRef.current) {
             const canvas = canvasRef.current;
             const video = videoRef.current;
             const context = canvas.getContext("2d");
+
             if (context) {
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const dataUrl = canvas.toDataURL("image/png"); // แปลงเป็น Base64
-                setCapturedImage(dataUrl); // เก็บข้อมูล Base64 ของภาพที่ถ่าย
-                console.log("Image captured:", dataUrl);
-                //sendImageToAPI;
+
+                // แปลงเป็น Blob
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        setCapturedImage(blob);
+                        console.log("Image captured");
+                    }
+                }, "image/png");
             }
         }
     };
 
-    // ฟังก์ชันส่งภาพไปยัง API
-    const sendImageToAPI = async (imageData: string) => {
+    const sendImageToAPI = async (imageBlob) => {
+        const formData = new FormData();
+        formData.append("image_files", imageBlob, "captured-image.png"); // ส่ง Blob เป็นไฟล์
+
         try {
-            const response = await fetch("/api/upload", {
+            const response = await fetch("http://127.0.0.1:8000/files/images/", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ image: imageData }), // ส่ง Base64
+                body: formData,
             });
-            const result = await response.json();
-            console.log("Image uploaded successfully:", result);
+
+            // ตรวจสอบว่าตอบกลับ OK
+            if (response.ok) {
+                const text = await response.text(); // รับข้อมูลเป็นข้อความ
+                console.log(text); // แสดงผลใน console
+                setResponseMessage(text); // ตั้งค่าข้อความที่ได้รับใน state
+            } else {
+                console.error("Error:", response.statusText);
+            }
         } catch (error) {
-            console.error("Error uploading image:", error);
+            console.error("Error:", error);
         }
     };
 
-    // ใช้ useEffect เพื่อตรวจสอบการเปลี่ยนแปลงของกล้อง
     useEffect(() => {
         if (isCameraOn && videoRef.current) {
-            videoRef.current.play().catch((error) => {
-                console.error("Error playing the video stream: ", error);
-            });
+            startCamera();
+        } else if (!isCameraOn && videoRef.current) {
+            stopCamera();
         }
     }, [isCameraOn]);
 
@@ -101,11 +115,17 @@ const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                     {/* พื้นที่สำหรับเปิดกล้อง */}
                     <Card className="md:w-96 md:h-96 w-64 h-64 bg-gray-900 flex items-center justify-center mb-8">
                         {isCameraOn ? (
-                            <video ref={videoRef} className="w-full h-full bg-black" />
+                            <video ref={videoRef} className="w-full h-full object-contain bg-black" />
                         ) : (
                             <span className="text-white">พื้นที่สำหรับเปิดกล้อง</span>
                         )}
                     </Card>
+
+                    {responseMessage && (
+                        <div className="mt-4">
+                            <div dangerouslySetInnerHTML={{ __html: responseMessage }} />
+                        </div>
+                    )}
 
                     <div className="md:gap-24 gap-14 flex bg-gray-700 rounded-full px-3 py-2">
                         {/* ปุ่มเปิดกล้อง */}
@@ -120,8 +140,6 @@ const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                                 </svg>
                             )}
                         </button>
-
-                        {/* ปุ่มถ่ายภาพ */}
                         <button onClick={captureImage} className="text-white w-fit">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-10">
                                 <path d="M12 9a3.75 3.75 0 1 0 0 7.5A3.75 3.75 0 0 0 12 9Z" />
@@ -132,12 +150,10 @@ const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                                 />
                             </svg>
                         </button>
-
-                        {/* ปุ่มส่งภาพ */}
                         <button
                             onClick={() => {
                                 if (capturedImage) {
-                                    sendImageToAPI(capturedImage); // ส่งภาพที่ถูกถ่ายไปยัง API
+                                    sendImageToAPI(capturedImage); // ส่ง Blob ของภาพที่ถูกจับไปยัง API
                                 } else {
                                     alert("ยังไม่มีภาพที่ถ่าย"); // แจ้งเตือนหากยังไม่ได้ถ่ายภาพ
                                 }
@@ -158,10 +174,12 @@ const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                     <canvas ref={canvasRef} style={{ display: "none" }} />
 
                     {/* แสดงภาพที่ถ่าย */}
-                    {capturedImage && (
-                        <div className="mt-4">
-                            <Image src={capturedImage} alt="Captured" className="w-64 h-64 object-contain" />
+                    {capturedImage ? (
+                        <div>
+                            <img src={URL.createObjectURL(capturedImage)} alt="Captured" className="w-64 h-64 object-contain" />
                         </div>
+                    ) : (
+                        <p className="text-gray-500">ยังไม่มีภาพที่ถ่าย</p>
                     )}
                 </CardBody>
             </Card>

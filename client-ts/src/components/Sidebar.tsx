@@ -7,7 +7,7 @@ interface SidebarProps {
     toggleSidebar: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
     const router = useRouter();
     const handleLogout = () => {
         nookies.destroy(null, "token", { path: "/" });

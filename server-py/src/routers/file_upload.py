@@ -1,7 +1,7 @@
 from fastapi import APIRouter,HTTPException, UploadFile, File, status
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 from fastapi.responses import StreamingResponse
-from typing import AsyncGenerator, List
+from typing import Union, AsyncGenerator, List
 from urllib.parse import quote
 from bson import ObjectId
 
@@ -25,7 +25,6 @@ async def upload_files(files: List[UploadFile], allowed_content_types: List[str]
         file_id = await fs_bucket.upload_from_stream(file.filename, file.file)
         file_ids.append(str(file_id))
     return file_ids
-
 @router.get("/images/{file_id}")
 async def get_image(file_id: str):
     try:
@@ -41,23 +40,15 @@ async def get_image(file_id: str):
 
 @router.post("/images/")
 async def upload_images(image_files: List[UploadFile] = File(...)):
-    try:
-        allowed_content_types = ["image/png", "image/jpeg"]
         file_ids = []
         for image_file in image_files:
-            if image_file.content_type not in allowed_content_types:
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Invalid file type: {image_file.content_type}. Allowed types are {', '.join(allowed_content_types)}"
-                )
-            
             file_content = await image_file.read()
+            
             file_id = await image_fs.upload_from_stream(image_file.filename, file_content)
             file_ids.append(str(file_id))
         
         return {"image_file_ids": file_ids}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload images: {str(e)}")
+
 
 @router.get("/download_image/{file_id}")
 async def download_image(file_id: str):

@@ -6,7 +6,7 @@ interface HeaderProps {
     toggleSidebar: () => void; // ฟังก์ชันสำหรับเปิดปิด Sidebar
 }
 
-const Header: React.FC<HeaderProps> = ({ isSidebarOpen, toggleSidebar }) => {
+export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, toggleSidebar }) => {
     const router = useRouter();
     const handleLogout = () => {
         nookies.destroy(null, "token", { path: "/" });
