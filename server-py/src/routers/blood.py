@@ -11,7 +11,7 @@ from ..database import users_collection
 
 router = APIRouter()
 
-def process_image_1(image_path):
+def process_image(image_path):
     resized_image = cv2.imread(image_path)
 
     # Center crop to 256x256
@@ -31,10 +31,19 @@ def process_image_1(image_path):
     s_hist = s_hist / s_hist.sum()
     v_hist = v_hist / v_hist.sum()
 
-    # Concatenate the histograms to form a single feature vector
-    feature_vector = np.concatenate([h_hist, s_hist, v_hist])
+    current_dir = os.path.dirname(__file__)
+    model_filename = os.path.join(current_dir, "../models/lightgbm_model.txt")                      # Load Model
+    loaded_model = lgb.Booster(model_file=model_filename) 
 
-    return feature_vector
+    feature_vector = np.concatenate([h_hist, s_hist, v_hist])
+    feature_vector = feature_vector.reshape(1, -1)                                                  # Reshape for LightGBM input
+    y_pred_loaded = loaded_model.predict(feature_vector, num_iteration=loaded_model.best_iteration) # Predict using the loaded model
+    predicted_label = np.argmax(y_pred_loaded, axis=1)                                              # Convert the predicted probabilities to class label
+    folder_labels = {'Normal': 0, 'Kun': 1, 'Red': 2, 'Green': 3}
+    reverse_folder_labels = {v: k for k, v in folder_labels.items()}                                # Reverse the dict
+    predicted_label_name = reverse_folder_labels[predicted_label[0]] 
+
+    return predicted_label_name
 
 @router.post("/upload-image-prediction/")
 async def upload_image_prediction(image: UploadFile = File(...)):
@@ -42,18 +51,7 @@ async def upload_image_prediction(image: UploadFile = File(...)):
     with open(temp_file_path, "wb") as buffer:
         buffer.write(await image.read())
     try:
-        current_dir = os.path.dirname(__file__)
-        model_filename = os.path.join(current_dir, "../models/lightgbm_model.txt")
-        loaded_model = lgb.Booster(model_file=model_filename)                                           # Load Model
-
-        feature_vector = process_image_1(temp_file_path)
-        feature_vector = feature_vector.reshape(1, -1)                                                  # Reshape for LightGBM input
-        y_pred_loaded = loaded_model.predict(feature_vector, num_iteration=loaded_model.best_iteration) # Predict using the loaded model
-        predicted_label = np.argmax(y_pred_loaded, axis=1)                                              # Convert the predicted probabilities to class label
-        folder_labels = {'Normal': 0, 'Kun': 1, 'Red': 2, 'Green': 3}
-        reverse_folder_labels = {v: k for k, v in folder_labels.items()}                                # Reverse the dict
-        predicted_label_name = reverse_folder_labels[predicted_label[0]] 
-
+        predicted_label_name = process_image(temp_file_path)
         os.remove(temp_file_path)
         return predicted_label_name
     except Exception as e:

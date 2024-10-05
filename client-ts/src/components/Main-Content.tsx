@@ -1,12 +1,14 @@
 import { Card, CardHeader, CardBody } from "@material-tailwind/react";
 import { useState, useRef, useEffect } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_FASTAPI_URL;
+
 interface MainContentProps {
     isSidebarOpen: boolean;
 }
 
 export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
-    const [responseMessage, setResponseMessage] = useState(false); 
+    const [responseMessage, setResponseMessage] = useState(false);
     const [isCameraOn, setIsCameraOn] = useState(false);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -51,15 +53,21 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
             const context = canvas.getContext("2d");
 
             if (context) {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                // Set canvas dimensions to 512x512
+                const desiredWidth = 512;
+                const desiredHeight = 512;
 
-                // แปลงเป็น Blob
+                canvas.width = desiredWidth;
+                canvas.height = desiredHeight;
+
+                // Draw the image from the video and resize it to 512x512
+                context.drawImage(video, 0, 0, desiredWidth, desiredHeight);
+
+                // Convert the canvas content to a Blob
                 canvas.toBlob((blob) => {
                     if (blob) {
                         setCapturedImage(blob);
-                        console.log("Image captured");
+                        console.log("Image captured and resized to 512x512");
                     }
                 }, "image/png");
             }
@@ -68,19 +76,19 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
 
     const sendImageToAPI = async (imageBlob) => {
         const formData = new FormData();
-        formData.append("image_files", imageBlob, "captured-image.png"); // ส่ง Blob เป็นไฟล์
+        formData.append("image", imageBlob, "captured-image.png"); // Append with the same key as in the backend
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/files/images/", {
+            const response = await fetch(`${API_URL}/blood/upload-image-prediction`, {
                 method: "POST",
                 body: formData,
             });
 
-            // ตรวจสอบว่าตอบกลับ OK
+            // Check if response is OK
             if (response.ok) {
-                const text = await response.text(); // รับข้อมูลเป็นข้อความ
-                console.log(text); // แสดงผลใน console
-                setResponseMessage(text); // ตั้งค่าข้อความที่ได้รับใน state
+                const text = await response.text(); // Receive the response text
+                console.log(text); // Display the response in the console
+                setResponseMessage(text); // Set the response message in your state
             } else {
                 console.error("Error:", response.statusText);
             }
