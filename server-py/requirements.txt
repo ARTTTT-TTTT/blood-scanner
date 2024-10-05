@@ -34,3 +34,6 @@ tqdm
 # Database Interaction
 motor
 pymongo[srv]
+
+
+'pydantic[email]'
