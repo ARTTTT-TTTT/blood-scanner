@@ -13,6 +13,7 @@ load_dotenv()
 origins = [
     "http://localhost",
     "http://localhost:8000",
+    "https://blood-scanner.onrender.com"
 ]
 
 app.add_middleware(
