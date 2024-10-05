@@ -23,18 +23,6 @@ export const login = async (email: string, password: string): Promise<Response> 
     return response;
 };
 
-export const register = async (formData: UserCreateModel): Promise<Response> => {
-    const response = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-    });
-
-    return response;
-};
-
 export const getUserProfile = async (token: string): Promise<ReadUserProfileModel> => {
     const response = await fetch(`${API_URL}/users/profile`, {
         method: "GET",
@@ -53,8 +41,4 @@ export const getUserProfile = async (token: string): Promise<ReadUserProfileMode
         gender: data.gender || "",
         congenital_disorders: data.congenital_disorders || "",
     };
-};
-
-export const loginWithGoogle = () => {
-    window.location.href = `${API_URL}/login/google`;
 };

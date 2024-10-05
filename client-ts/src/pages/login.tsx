@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import nookies from "nookies";
 
-import { login, loginWithGoogle } from "@/api";
+import { login } from "@/api";
 import { UserLoginModel } from "@/models";
 
 export default function LoginPage() {

@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardBody } from "@material-tailwind/react";
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 
 const API_URL = process.env.NEXT_PUBLIC_FASTAPI_URL;
 
@@ -8,9 +9,9 @@ interface MainContentProps {
 }
 
 export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
-    const [responseMessage, setResponseMessage] = useState(false);
+    const [responseMessage, setResponseMessage] = useState<string | null>(null);
     const [isCameraOn, setIsCameraOn] = useState(false);
-    const [capturedImage, setCapturedImage] = useState<string | null>(null);
+    const [capturedImage, setCapturedImage] = useState<Blob | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -53,30 +54,23 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
             const context = canvas.getContext("2d");
 
             if (context) {
-                // Set canvas dimensions to 512x512
-                const desiredWidth = 512;
-                const desiredHeight = 512;
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                canvas.width = desiredWidth;
-                canvas.height = desiredHeight;
-
-                // Draw the image from the video and resize it to 512x512
-                context.drawImage(video, 0, 0, desiredWidth, desiredHeight);
-
-                // Convert the canvas content to a Blob
+                // แปลงภาพใน canvas เป็น Blob แทนการแปลงเป็น Base64 string
                 canvas.toBlob((blob) => {
                     if (blob) {
-                        setCapturedImage(blob);
-                        console.log("Image captured and resized to 512x512");
+                        setCapturedImage(blob); // เก็บ blob ของภาพที่ถ่าย
                     }
                 }, "image/png");
             }
         }
     };
 
-    const sendImageToAPI = async (imageBlob) => {
+    const sendImageToAPI = async (imageBlob: Blob) => {
         const formData = new FormData();
-        formData.append("image", imageBlob, "captured-image.png"); // Append with the same key as in the backend
+        formData.append("image", imageBlob, "captured-image.png");
 
         try {
             const response = await fetch(`${API_URL}/blood/upload-image-prediction`, {
@@ -84,11 +78,10 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                 body: formData,
             });
 
-            // Check if response is OK
             if (response.ok) {
-                const text = await response.text(); // Receive the response text
-                console.log(text); // Display the response in the console
-                setResponseMessage(text); // Set the response message in your state
+                const text = await response.text();
+                console.log(text);
+                setResponseMessage(text); // ตั้งค่า responseMessage เป็น string ที่ได้รับจาก API
             } else {
                 console.error("Error:", response.statusText);
             }
@@ -184,7 +177,13 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                     {/* แสดงภาพที่ถ่าย */}
                     {capturedImage ? (
                         <div>
-                            <img src={URL.createObjectURL(capturedImage)} alt="Captured" className="w-64 h-64 object-contain" />
+                            <Image
+                                src={capturedImage ? URL.createObjectURL(capturedImage) : ""}
+                                alt="Captured"
+                                className="w-64 h-64 object-contain"
+                                width={512} // กำหนดความกว้าง
+                                height={512} // กำหนดความสูง
+                            />
                         </div>
                     ) : (
                         <p className="text-gray-500">ยังไม่มีภาพที่ถ่าย</p>
