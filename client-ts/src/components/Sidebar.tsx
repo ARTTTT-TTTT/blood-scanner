@@ -60,8 +60,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             {/* ปุ่มออกจากระบบและ icon */}
             <section className="flex items-center space-x-2 md:hidden mt-auto gap-2">
                 {" "}
-                {/* เพิ่ม mt-auto เพื่อจัดเรียงที่ด้านล่าง */}
-                <div className="w-8 h-8 rounded-full bg-gray-600"></div>
                 <button onClick={handleLogout} className="hover:bg-gray-700 p-2 rounded-md">
                     ออกจากระบบ
                 </button>

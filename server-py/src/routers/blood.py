@@ -39,11 +39,11 @@ def process_image(image_path):
     feature_vector = feature_vector.reshape(1, -1)                                                  # Reshape for LightGBM input
     y_pred_loaded = loaded_model.predict(feature_vector, num_iteration=loaded_model.best_iteration) # Predict using the loaded model
     predicted_label = np.argmax(y_pred_loaded, axis=1)                                              # Convert the predicted probabilities to class label
-    folder_labels = {'Normal': 0, 'Kun': 1, 'Red': 2, 'Green': 3}
-    reverse_folder_labels = {v: k for k, v in folder_labels.items()}                                # Reverse the dict
-    predicted_label_name = reverse_folder_labels[predicted_label[0]] 
+    #folder_labels = {'Normal': 0, 'Kun': 1, 'Red': 2, 'Green': 3}
+    #reverse_folder_labels = {v: k for k, v in folder_labels.items()}                                # Reverse the dict
+    #predicted_label_name = reverse_folder_labels[predicted_label[0]] 
 
-    return predicted_label_name
+    return int(predicted_label[0])
 
 @router.post("/upload-image-prediction/")
 async def upload_image_prediction(image: UploadFile = File(...)):
@@ -52,6 +52,7 @@ async def upload_image_prediction(image: UploadFile = File(...)):
         buffer.write(await image.read())
     try:
         predicted_label_name = process_image(temp_file_path)
+
         os.remove(temp_file_path)
         return predicted_label_name
     except Exception as e:

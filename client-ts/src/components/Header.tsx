@@ -50,7 +50,6 @@ export const Header: React.FC<HeaderProps> = ({ isSidebarOpen, toggleSidebar }) 
                 <button onClick={handleLogout} className="hover:bg-gray-700 p-2 rounded-md">
                     ออกจากระบบ
                 </button>
-                <div className="w-8 h-8 rounded-full bg-gray-600"></div>
             </div>
 
             {/* แสดงชื่อในหน้าจอมือถือ */}
