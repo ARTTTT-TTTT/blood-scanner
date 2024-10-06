@@ -156,8 +156,7 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
         >
             <Card
                 shadow={false}
-                className={`bg-gray-800 transition-transform duration-300 ease-in-out ${isSidebarOpen ? "md:translate-x-24" : "md:translate-x-0"} 
-                        hidden md:block`}
+                className={`bg-gray-800 transition-transform duration-300 ease-in-out ${isSidebarOpen ? "md:translate-x-24" : "md:translate-x-0"} `}
             >
                 <CardHeader
                     shadow={false}
@@ -166,7 +165,7 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                 >
                     {displayDate} - 0 {/* วันที่ปัจจุบัน */}
                 </CardHeader>
-                <CardBody className="p-4 flex flex-col items-center justify-center gap-6">
+                <CardBody className="md:p-4 p-6 flex flex-col items-center justify-center gap-6">
                     {/* พื้นที่สำหรับเปิดกล้อง */}
                     <Card className="md:w-96 md:h-96 w-64 h-64 bg-gray-900 flex items-center justify-center">
                         {isCameraOn ? (
@@ -177,10 +176,10 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                     </Card>
 
                     {/* พื้นที่สำหรับภาพถ่าย */}
-                    <section className="flex items-center justify-center gap-8">
+                    <section className="flex items-center justify-center md:gap-8 gap-4">
                         {/* Canvas ที่ซ่อนไว้สำหรับการถ่ายภาพ */}
                         <canvas ref={canvasRef} style={{ display: "none" }} />
-                        <Card className="md:w-48 md:h-48 w-40 h-40 bg-gray-900 flex items-center justify-center">
+                        <Card className="md:w-48 md:h-48 w-36 h-36 bg-gray-900 flex items-center justify-center">
                             {capturedImage ? (
                                 <Image
                                     src={capturedImage ? URL.createObjectURL(capturedImage) : ""}
@@ -193,7 +192,7 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                                 <span className="text-white">ยังไม่มีภาพถ่าย</span>
                             )}
                         </Card>
-                        <Card className="md:w-40 md:h-20 w-64 h-64 bg-gray-700 flex items-center justify-center text-4xl text-nowrap">
+                        <Card className="md:w-40 md:h-20 w-24 h-12 bg-gray-700 flex items-center justify-center md:text-4xl text-xl text-nowrap">
                             {responseMessage ? <span className="text-white">{responseMessage}</span> : <span className="text-white">ผลลัพธ์</span>}
                         </Card>
                     </section>
