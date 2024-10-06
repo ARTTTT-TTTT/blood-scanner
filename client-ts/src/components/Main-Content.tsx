@@ -24,18 +24,27 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
 
     const startCamera = async () => {
         try {
-            // กำหนดให้ใช้กล้องหลัง
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { exact: "environment" } },
+                video: { facingMode: { exact: "environment" } }, // ใช้กล้องหลัง
+                audio: false,
             });
-
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
-                videoRef.current.play();
-            }
 
+                // เรียกใช้ play() หลังจากกำหนด srcObject
+                await videoRef.current.play().catch((error) => {
+                    console.error("Play failed:", error);
+                });
+            }
             streamRef.current = stream;
             setIsCameraOn(true);
+
+            // ป้องกัน fullscreen
+            document.addEventListener("fullscreenchange", () => {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen(); // ออกจากโหมดเต็มจอ
+                }
+            });
         } catch (error) {
             console.error("Error accessing the camera: ", error);
         }
@@ -169,7 +178,7 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                     {/* พื้นที่สำหรับเปิดกล้อง */}
                     <Card className="md:w-96 md:h-96 w-64 h-64 bg-gray-900 flex items-center justify-center">
                         {isCameraOn ? (
-                            <video ref={videoRef} className="md:w-80 md:h-80 w-60 h-60 object-fill rounded-xl" autoPlay />
+                            <video ref={videoRef} className="md:w-80 md:h-80 w-60 h-60 object-fill rounded-xl" autoPlay playsInline muted />
                         ) : (
                             <span className="text-white">พื้นที่สำหรับเปิดกล้อง</span>
                         )}
