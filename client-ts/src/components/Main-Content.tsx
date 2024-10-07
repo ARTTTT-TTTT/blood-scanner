@@ -10,11 +10,16 @@ interface MainContentProps {
 
 export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
     const [responseMessage, setResponseMessage] = useState<string | null>(null);
-    const [isCameraOn, setIsCameraOn] = useState<boolean>(false);
     const [capturedImage, setCapturedImage] = useState<Blob | null>(null);
+    const [isCaptured, setIsCaptured] = useState<boolean>(false);
+    const [isCameraOn, setIsCameraOn] = useState<boolean>(false);
+    const [isSending, setIsSending] = useState<boolean>(false);
     const canvasRef = useRef<HTMLCanvasElement>(null!);
     const videoRef = useRef<HTMLVideoElement>(null!);
     const streamRef = useRef<MediaStream | null>(null);
+
+    const [showAlert, setShowAlert] = useState(false);
+    const [alertMessage, setAlertMessage] = useState("");
 
     const today = new Date();
     const day = today.getDate();
@@ -24,29 +29,39 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
 
     const startCamera = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { exact: "environment" } }, // ใช้กล้องหลัง
+            const constraints = {
+                video: { facingMode: { exact: "environment" } },
                 audio: false,
-            });
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
-
-                // เรียกใช้ play() หลังจากกำหนด srcObject
-                await videoRef.current.play().catch((error) => {
-                    console.error("Play failed:", error);
-                });
+                await videoRef.current.play();
             }
             streamRef.current = stream;
             setIsCameraOn(true);
-
-            // ป้องกัน fullscreen
-            document.addEventListener("fullscreenchange", () => {
-                if (document.fullscreenElement) {
-                    document.exitFullscreen(); // ออกจากโหมดเต็มจอ
+        } catch (error: any) {
+            if (error.name === "OverconstrainedError") {
+                // Fallback if the "environment" camera is not available
+                try {
+                    const fallbackConstraints = {
+                        video: { facingMode: "environment" }, // Use "ideal" instead of "exact"
+                        audio: false,
+                    };
+                    const stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                        await videoRef.current.play();
+                    }
+                    streamRef.current = stream;
+                    setIsCameraOn(true);
+                } catch (fallbackError) {
+                    console.error("Fallback error accessing the camera: ", fallbackError);
                 }
-            });
-        } catch (error) {
-            console.error("Error accessing the camera: ", error);
+            } else {
+                console.error("Error accessing the camera: ", error);
+            }
         }
     };
 
@@ -98,6 +113,7 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                         setCapturedImage(blob); // เก็บ blob ของภาพที่ถ่าย
                     }
                 }, "image/png");
+                setIsCaptured(true);
             }
         }
     };
@@ -105,6 +121,8 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
     const sendImageToAPI = async (imageBlob: Blob) => {
         const formData = new FormData();
         formData.append("image", imageBlob, "captured-image.png");
+
+        setIsSending(true); // Set isSending to true when the request starts
 
         try {
             const response = await fetch(`${API_URL}/blood/upload-image-prediction`, {
@@ -116,37 +134,41 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                 throw new Error(`Error: ${response.statusText}`);
             }
 
-            if (response.ok) {
-                const text = await response.text(); // ค่านี้จะเป็น "0", "1", "2", หรือ "3"
-                if (text) {
-                    // แปลง text เป็น int
-                    const result = parseInt(text, 10);
-                    let displayMessage = "";
+            const text = await response.text(); // Assuming text response
+            const result = parseInt(text, 10);
+            let displayMessage = "";
 
-                    switch (result) {
-                        case 0:
-                            displayMessage = "ปกติ";
-                            break;
-                        case 1:
-                            displayMessage = "ขุ่น";
-                            break;
-                        case 2:
-                            displayMessage = "แดง";
-                            break;
-                        case 3:
-                            displayMessage = "เขียว";
-                            break;
-                        default:
-                            displayMessage = "ค่าที่ไม่รู้จัก"; // เผื่อกรณีค่าไม่ตรงกับที่กำหนด
-                    }
-                    setResponseMessage(displayMessage); // ตั้งค่า responseMessage เป็นข้อความที่แปลแล้ว
-                }
-            } else {
-                console.error("Error:", response.statusText);
+            switch (result) {
+                case 0:
+                    displayMessage = "ปกติ";
+                    break;
+                case 1:
+                    displayMessage = "ขุ่น";
+                    break;
+                case 2:
+                    displayMessage = "แดง";
+                    break;
+                case 3:
+                    displayMessage = "เขียว";
+                    break;
+                default:
+                    displayMessage = "ค่าที่ไม่รู้จัก";
             }
+            setResponseMessage(displayMessage);
+            triggerAlert(displayMessage);
         } catch (error) {
             console.error("Error:", error);
+        } finally {
+            setIsSending(false); // Reset isSending when the request is complete
         }
+    };
+
+    const triggerAlert = (message:any) => {
+        setAlertMessage(message);
+        setShowAlert(true);
+        setTimeout(() => {
+            setShowAlert(false); // ซ่อนหลังจากแสดง 3 วินาที
+        }, 3000);
     };
 
     useEffect(() => {
@@ -167,6 +189,15 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                 shadow={false}
                 className={`bg-gray-800 transition-transform duration-300 ease-in-out ${isSidebarOpen ? "md:translate-x-24" : "md:translate-x-0"} `}
             >
+                {showAlert && (
+                    <div
+                        className={`fixed z-10 md:top-20 md:-right-20 top-36 -right-10 w-28 transform -translate-x-1/2 p-4 rounded-md shadow-lg bg-white text-black text-xl text-center transition-transform duration-300 ease-in-out ${
+                            showAlert ? "translate-y-0" : "-translate-y-20"
+                        }`}
+                    >
+                        <p>{alertMessage}</p>
+                    </div>
+                )}
                 <CardHeader
                     shadow={false}
                     floated={false}
@@ -202,7 +233,7 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                             )}
                         </Card>
                         <Card className="md:w-40 md:h-20 w-24 h-12 bg-gray-700 flex items-center justify-center md:text-4xl text-xl text-nowrap">
-                            {responseMessage ? <span className="text-white">{responseMessage}</span> : <span className="text-white">ผลลัพธ์</span>}
+                            {responseMessage ? <span className="text-white">{responseMessage}</span> : <span className="text-white">-</span>}
                         </Card>
                     </section>
 
@@ -221,7 +252,7 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                         </button>
 
                         {/* ปุ่มถ่ายภาพ */}
-                        <button onClick={captureImage} className="text-white w-fit">
+                        <button onClick={captureImage} className="text-white w-fit" style={{ opacity: isCameraOn ? 1 : 0.5 }}>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-10">
                                 <path d="M12 9a3.75 3.75 0 1 0 0 7.5A3.75 3.75 0 0 0 12 9Z" />
                                 <path
@@ -235,21 +266,33 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                         {/* ปุ่มส่งภาพ */}
                         <button
                             onClick={() => {
-                                if (capturedImage) {
+                                if (!isSending && capturedImage) {
+                                    // ตรวจสอบว่ากำลังส่งภาพหรือไม่
                                     sendImageToAPI(capturedImage); // ส่ง Blob ของภาพที่ถูกจับไปยัง API
-                                } else {
+                                } else if (!capturedImage) {
                                     alert("ยังไม่มีภาพที่ถ่าย"); // แจ้งเตือนหากยังไม่ได้ถ่ายภาพ
                                 }
                             }}
                             className="text-white"
+                            style={{ opacity: isCaptured && !isSending ? 1 : 0.5 }}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-10">
-                                <path
-                                    fillRule="evenodd"
-                                    d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm.53 5.47a.75.75 0 0 0-1.06 0l-3 3a.75.75 0 1 0 1.06 1.06l1.72-1.72v5.69a.75.75 0 0 0 1.5 0v-5.69l1.72 1.72a.75.75 0 1 0 1.06-1.06l-3-3Z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
+                            {isSending ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-10">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-10">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm.53 5.47a.75.75 0 0 0-1.06 0l-3 3a.75.75 0 1 0 1.06 1.06l1.72-1.72v5.69a.75.75 0 0 0 1.5 0v-5.69l1.72 1.72a.75.75 0 1 0 1.06-1.06l-3-3Z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            )}
                         </button>
                     </section>
                 </CardBody>
