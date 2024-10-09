@@ -270,7 +270,7 @@ export const MainContent: React.FC<MainContentProps> = ({ isSidebarOpen }) => {
                                     // ตรวจสอบว่ากำลังส่งภาพหรือไม่
                                     sendImageToAPI(capturedImage); // ส่ง Blob ของภาพที่ถูกจับไปยัง API
                                 } else if (!capturedImage) {
-                                    alert("ยังไม่มีภาพที่ถ่าย"); // แจ้งเตือนหากยังไม่ได้ถ่ายภาพ
+                                    //ไม่มีอะไร คิดได้แล้วค่อยมาใส่
                                 }
                             }}
                             className="text-white"
